@@ -21,7 +21,10 @@ y_test = pd.read_csv(get_path('data', 'y_test.csv')).values.astype('float32')
 # arsitektur model (Functional API)
 def build_model(input_shape):
     inputs = layers.Input(shape=(input_shape,))
-    x = layers.Dense(64, activation='relu')(inputs)
+    x = layers.Dense(128, activation='relu')(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(0.3)(x)
+    x = layers.Dense(64, activation='relu')(x)
     x = layers.BatchNormalization()(x)
     x = layers.Dropout(0.2)(x)
     x = layers.Dense(32, activation='relu')(x)
@@ -33,7 +36,7 @@ def build_model(input_shape):
 model = build_model(X_train.shape[1])
 
 # setup Optimizer, Loss, dan Metrics
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.0005)
 loss_fn = tf.keras.losses.BinaryCrossentropy()
 train_acc_metric = tf.keras.metrics.BinaryAccuracy()
 val_acc_metric = tf.keras.metrics.BinaryAccuracy()
