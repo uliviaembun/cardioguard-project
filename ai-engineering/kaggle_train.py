@@ -52,7 +52,9 @@ cmd = [
     "--epochs",
     "100",
     "--batch-size",
-    "64",
+    "128",
+    "--learning-rate",
+    "0.001",
 ]
 
 print("Running:", " ".join(cmd))
