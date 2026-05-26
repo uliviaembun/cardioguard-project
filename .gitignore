@@ -1,11 +1,18 @@
-# Python
+# python
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# environment
 venv/
 .env
+.venv/
+env/
 
-# Model Files (Opsional: jika filenya sangat besar, gunakan Git LFS)
+# Model Files 
 # *.keras
 # *.h5
 
@@ -16,3 +23,7 @@ dist/
 
 # Data
 # data/raw/*.csv
+
+# kaggle for training 
+ai-engineering/kaggle_outputs/
+ai-engineering/logs/

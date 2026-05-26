@@ -1,0 +1,22 @@
+{
+  "default_threshold_0_5": {
+    "accuracy": 0.7272395491600037,
+    "mae_prob": 0.35896095633506775,
+    "auc": 0.7878108024597168,
+    "precision": 0.7493853569030762,
+    "recall": 0.6741374135017395
+  },
+  "tuned_threshold": {
+    "threshold": 0.48,
+    "accuracy": 0.7288444638252258,
+    "mae_prob": 0.35896095633506775,
+    "mae_label": 0.2711555296177415,
+    "auc": 0.7878108024597168,
+    "precision": 0.7413005828857422,
+    "recall": 0.694190502166748
+  },
+  "notes": {
+    "mae_prob": "MAE antara label 0/1 dan probabilitas risiko.",
+    "mae_label": "MAE antara label 0/1 dan prediksi kelas thresholded; pada binary classification ini sama dengan error rate."
+  }
+}
