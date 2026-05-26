@@ -60,6 +60,15 @@ FEATURE_COLUMNS = [
     "bp_cat",
     "pulse_pressure",
     "map",
+    "age_bmi",
+    "age_ap_hi",
+    "age_cholesterol",
+    "bmi_ap_hi",
+    "is_obese",
+    "is_high_bp",
+    "is_high_cholesterol",
+    "is_high_glucose",
+    "lifestyle_risk",
 ]
 TARGET_COLUMN = "cardio"
 
@@ -80,11 +89,25 @@ def bp_category(ap_hi: float, ap_lo: float) -> int:
 
 def add_feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
+
     if "bmi" not in df.columns:
         df["bmi"] = df["weight"] / ((df["height"] / 100.0) ** 2)
+
     df["bp_cat"] = [bp_category(h, l) for h, l in zip(df["ap_hi"], df["ap_lo"])]
     df["pulse_pressure"] = df["ap_hi"] - df["ap_lo"]
     df["map"] = df["ap_lo"] + (df["pulse_pressure"] / 3.0)
+
+    # extra risk features
+    df["age_bmi"] = df["age_years"] * df["bmi"]
+    df["age_ap_hi"] = df["age_years"] * df["ap_hi"]
+    df["age_cholesterol"] = df["age_years"] * df["cholesterol"]
+    df["bmi_ap_hi"] = df["bmi"] * df["ap_hi"]
+
+    df["is_obese"] = (df["bmi"] >= 30).astype(int)
+    df["is_high_bp"] = ((df["ap_hi"] >= 140) | (df["ap_lo"] >= 90)).astype(int)
+    df["is_high_cholesterol"] = (df["cholesterol"] >= 2).astype(int)
+    df["is_high_glucose"] = (df["gluc"] >= 2).astype(int)
+    df["lifestyle_risk"] = df["smoke"] + df["alco"] + (1 - df["active"])
     return df
 
 
@@ -184,37 +207,37 @@ def cardio_guard_loss(y_true, y_pred):
     y_pred = tf.clip_by_value(tf.cast(y_pred, tf.float32), 1e-7, 1.0 - 1e-7)
     bce = tf.keras.backend.binary_crossentropy(y_true, y_pred)
     false_negative_penalty = tf.reduce_mean(y_true * tf.square(1.0 - y_pred), axis=-1)
-    return bce + 0.25 * false_negative_penalty
+    return bce + 0.05 * false_negative_penalty
 
 
 def build_model(input_dim: int) -> Model:
     inputs = layers.Input(shape=(input_dim,), name="cardio_features")
     gated = RiskFeatureGate(name="risk_feature_gate")(inputs)
     x = layers.Concatenate(name="raw_plus_gated_features")([inputs, gated])
-
+    x = layers.Dense(
+        256,
+        activation="swish",
+        kernel_regularizer=regularizers.l2(1e-5),
+        name="dense_256",
+    )(x)
+    x = layers.BatchNormalization(name="bn_256")(x)
+    x = layers.Dropout(0.15, name="dropout_256")(x)
     x = layers.Dense(
         128,
-        activation="relu",
-        kernel_regularizer=regularizers.l2(1e-4),
+        activation="swish",
+        kernel_regularizer=regularizers.l2(1e-5),
         name="dense_128",
     )(x)
     x = layers.BatchNormalization(name="bn_128")(x)
-    x = layers.Dropout(0.35, name="dropout_128")(x)
-
-    x = layers.Dense(
-        64,
-        activation="relu",
-        kernel_regularizer=regularizers.l2(1e-4),
-        name="dense_64",
-    )(x)
+    x = layers.Dropout(0.10, name="dropout_128")(x)
+    residual = layers.Dense(64, activation="swish", name="residual_projection")(x)
+    x = layers.Dense(64, activation="swish", name="dense_64")(x)
     x = layers.BatchNormalization(name="bn_64")(x)
-    x = layers.Dropout(0.25, name="dropout_64")(x)
-
-    x = layers.Dense(32, activation="relu", name="dense_32")(x)
-    x = layers.BatchNormalization(name="bn_32")(x)
-    x = layers.Dense(16, activation="relu", name="dense_16")(x)
+    x = layers.Add(name="residual_add")([x, residual])
+    x = layers.Dropout(0.10, name="dropout_64")(x)
+    x = layers.Dense(32, activation="swish", name="dense_32")(x)
+    x = layers.Dense(16, activation="swish", name="dense_16")(x)
     outputs = layers.Dense(1, activation="sigmoid", name="risk_probability")(x)
-
     return Model(inputs=inputs, outputs=outputs, name="cardioguard_risk_model")
 
 
@@ -224,32 +247,39 @@ class CustomTrainingMonitor(tf.keras.callbacks.Callback):
     def __init__(self, best_model_path: Path):
         super().__init__()
         self.best_model_path = best_model_path
-        self.best_val_mae = float("inf")
         self.best_val_accuracy = 0.0
+        self.best_val_auc = 0.0
+        self.best_val_mae = float("inf")
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
-        val_mae = float(logs.get("val_mae_prob", float("inf")))
         val_accuracy = float(logs.get("val_accuracy", 0.0))
-        improved = val_mae < self.best_val_mae or (
-            np.isclose(val_mae, self.best_val_mae) and val_accuracy > self.best_val_accuracy
+        val_auc = float(logs.get("val_auc", 0.0))
+        val_mae = float(logs.get("val_mae_prob", float("inf")))
+        improved = (
+            val_accuracy > self.best_val_accuracy
+            or (
+                np.isclose(val_accuracy, self.best_val_accuracy)and val_auc > self.best_val_auc
+            )
         )
+
         if improved:
-            self.best_val_mae = val_mae
             self.best_val_accuracy = val_accuracy
+            self.best_val_auc = val_auc
+            self.best_val_mae = val_mae
             self.model.save(self.best_model_path)
             print(
-                f"  -> Best model updated | val_mae_prob={val_mae:.4f}, "
-                f"val_accuracy={val_accuracy:.4f}"
+                f"  -> Best model updated | "
+                f"val_accuracy={val_accuracy:.4f}, "
+                f"val_auc={val_auc:.4f}, "
+                f"val_mae_prob={val_mae:.4f}"
             )
-
 
 def make_dataset(X, y, batch_size: int, training: bool = True):
     dataset = tf.data.Dataset.from_tensor_slices((X, y))
     if training:
         dataset = dataset.shuffle(buffer_size=len(X), seed=SEED, reshuffle_each_iteration=True)
     return dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
-
 
 def compute_class_weights(y_train: np.ndarray) -> Dict[int, float]:
     positives = float(np.sum(y_train == 1))

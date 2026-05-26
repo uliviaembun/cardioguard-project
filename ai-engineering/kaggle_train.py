@@ -50,7 +50,7 @@ cmd = [
     str(training_script),
     "--rebuild-data",
     "--epochs",
-    "15",
+    "100",
     "--batch-size",
     "64",
 ]
