@@ -2,13 +2,13 @@
 
 Modul ini berisi pipeline machine learning untuk mendukung fitur deteksi dini risiko penyakit kardiovaskular pada aplikasi CardioGuard. Model digunakan untuk menghasilkan estimasi risiko berdasarkan data fisik, tekanan darah, dan beberapa indikator gaya hidup pengguna.
 
-> Catatan: hasil prediksi dari model ini digunakan sebagai skrining awal dan edukasi kesehatan. Output model tidak ditujukan sebagai pengganti diagnosis dokter atau tenaga medis profesional.
+> Hasil prediksi dari model ini digunakan sebagai skrining awal dan edukasi kesehatan. Output model tidak ditujukan sebagai pengganti diagnosis dokter atau tenaga medis profesional.
 
 ## Overview
 
 CardioGuard AI dikembangkan sebagai modul backend untuk melakukan prediksi risiko penyakit kardiovaskular. Model dibangun menggunakan TensorFlow/Keras dan disajikan melalui REST API berbasis FastAPI.
 
-Pipeline AI mencakup beberapa bagian utama:
+Pipeline AI mencakup:
 
 - preprocessing dan feature engineering;
 - training model neural network;
@@ -48,18 +48,18 @@ ai-engineering/
 
 Model yang digunakan adalah neural network berbasis TensorFlow Keras Functional API. Input model berasal dari fitur numerik dan kategorikal sederhana yang berkaitan dengan risiko penyakit kardiovaskular.
 
-Beberapa komponen utama yang digunakan:
+Komponen utama yang digunakan:
 
 - `RiskFeatureGate`: custom layer untuk membantu model memberi bobot adaptif pada fitur input;
 - `cardio_guard_loss`: custom loss function untuk mendukung proses klasifikasi risiko;
 - `CustomTrainingMonitor`: monitor training untuk menyimpan model terbaik berdasarkan performa validasi;
 - custom training loop berbasis `tf.GradientTape`.
 
-Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut kemudian dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan label risiko.
+Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan label risiko.
 
 ## Input Features
 
-Fitur utama yang digunakan oleh model:
+Fitur utama yang digunakan model:
 
 | Feature | Description |
 |---|---|
@@ -72,26 +72,14 @@ Fitur utama yang digunakan oleh model:
 | `gluc` | Kategori kadar glukosa |
 | `smoke` | Status merokok |
 | `alco` | Konsumsi alkohol |
-| `active` | Aktivitas fisik |
+| `active` | Status aktivitas fisik |
 | `age_years` | Usia dalam tahun |
 
-Selain fitur utama, pipeline training juga membuat beberapa fitur turunan, seperti:
+Pipeline juga membuat beberapa fitur turunan, seperti BMI, kategori tekanan darah, pulse pressure, mean arterial pressure, indikator obesitas, indikator tekanan darah tinggi, indikator kolesterol tinggi, indikator glukosa tinggi, dan beberapa fitur interaksi.
 
-- BMI;
-- kategori tekanan darah;
-- pulse pressure;
-- mean arterial pressure;
-- indikator obesitas;
-- indikator tekanan darah tinggi;
-- indikator kolesterol tinggi;
-- indikator glukosa tinggi;
-- fitur interaksi antara usia, BMI, tekanan darah, dan kolesterol.
+## Training
 
-Feature engineering ini dilakukan untuk menambah sinyal prediktif dari data tabular yang tersedia.
-
-## Training Pipeline
-
-Training dilakukan melalui script:
+Training dilakukan melalui script berikut:
 
 ```bash
 python scripts/training_model.py
@@ -103,16 +91,7 @@ Contoh command training:
 python scripts/training_model.py --rebuild-data --epochs 40 --batch-size 128 --learning-rate 0.001
 ```
 
-Parameter yang umum digunakan:
-
-| Parameter | Description |
-|---|---|
-| `--rebuild-data` | Menjalankan ulang proses data preparation |
-| `--epochs` | Jumlah epoch training |
-| `--batch-size` | Ukuran batch |
-| `--learning-rate` | Learning rate optimizer |
-
-Training pipeline akan menyimpan beberapa output utama:
+Output training disimpan ke folder:
 
 ```text
 models/
@@ -122,7 +101,7 @@ logs/
 
 ## Training Output
 
-Setelah training selesai, model dan artifact akan disimpan ke folder berikut:
+Setelah training selesai, model dan artifact akan disimpan ke beberapa folder utama.
 
 ### Models
 
@@ -131,20 +110,12 @@ models/cardioguard_model.keras
 models/cardioguard_best_model.keras
 ```
 
-Perbedaan kedua file tersebut:
-
 | File | Description |
 |---|---|
 | `cardioguard_model.keras` | Model pada epoch terakhir |
 | `cardioguard_best_model.keras` | Model terbaik berdasarkan performa validasi |
 
-Untuk inference dan API, model yang direkomendasikan adalah:
-
-```text
-models/cardioguard_best_model.keras
-```
-
-karena model tersebut merupakan checkpoint terbaik selama proses training.
+Untuk inference dan API, model yang direkomendasikan adalah `cardioguard_best_model.keras`.
 
 ### Artifacts
 
@@ -155,11 +126,9 @@ artifacts/threshold.json
 artifacts/training_metrics.json
 ```
 
-Keterangan:
-
 | Artifact | Description |
 |---|---|
-| `scaler.pkl` | Scaler yang digunakan untuk normalisasi fitur |
+| `scaler.pkl` | Scaler untuk normalisasi fitur |
 | `feature_columns.json` | Daftar fitur yang digunakan model |
 | `threshold.json` | Threshold klasifikasi risiko |
 | `training_metrics.json` | Ringkasan metrik hasil training |
@@ -214,7 +183,7 @@ Install dependency:
 pip install -r requirements.txt
 ```
 
-## Running Inference Locally
+## Inference
 
 Untuk mencoba inference tanpa menjalankan API:
 
@@ -222,14 +191,7 @@ Untuk mencoba inference tanpa menjalankan API:
 python scripts/inference.py
 ```
 
-Script inference akan memuat:
-
-- model dari folder `models/`;
-- scaler dari folder `artifacts/`;
-- daftar fitur dari `feature_columns.json`;
-- threshold dari `threshold.json`.
-
-Output inference berupa probabilitas risiko, label risiko, dan level risiko.
+Script inference akan memuat model, scaler, daftar fitur, dan threshold dari folder `models/` dan `artifacts/`.
 
 ## Running the API
 
@@ -238,10 +200,10 @@ API dijalankan menggunakan FastAPI.
 Dari folder `ai-engineering`, jalankan:
 
 ```bash
-uvicorn app:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Setelah API berjalan, dokumentasi endpoint dapat dibuka di:
+Dokumentasi endpoint dapat dibuka di:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -280,38 +242,38 @@ Contoh response:
 
 ```json
 {
-  "risk_probability": 0.42,
-  "risk_label": 0,
-  "risk_level": "low",
-  "threshold": 0.48
+  "risk_probability": 0.390542,
+  "risk_percent": 39.05,
+  "threshold": 0.48,
+  "predicted_class": 0,
+  "risk_label": "sedang",
+  "disclaimer": "Hasil ini adalah skrining risiko awal, bukan diagnosis medis."
 }
 ```
 
 ## Generative AI Explanation
 
-Endpoint `/explain` dapat menggunakan generative AI untuk membuat penjelasan yang lebih mudah dipahami pengguna. Fitur ini bersifat opsional dan digunakan sebagai tambahan, bukan sebagai bagian utama dari prediksi model.
+Endpoint `/explain` menyediakan penjelasan tambahan yang lebih mudah dibaca pengguna berdasarkan hasil prediksi model. Fitur ini bersifat opsional dan tidak memengaruhi output utama dari model prediksi.
 
-Jika API key tidak tersedia, service tetap dapat berjalan menggunakan fallback explanation.
+Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation. Jika environment variable `OPENAI_API_KEY` tersedia, service akan menggunakan generative AI untuk membuat penjelasan yang lebih natural.
 
-Contoh konfigurasi environment variable.
+API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable pada environment lokal atau deployment server.
 
 Windows PowerShell:
 
 ```powershell
-$env:OPENAI_API_KEY="your_api_key"
 $env:OPENAI_MODEL="gpt-5.4-mini"
 ```
 
 Linux/macOS:
 
 ```bash
-export OPENAI_API_KEY="your_api_key"
 export OPENAI_MODEL="gpt-5.4-mini"
 ```
 
 ## Kaggle Training
 
-Training model dilakukan di Kaggle untuk memanfaatkan GPU.
+Training model dapat dilakukan di Kaggle untuk memanfaatkan GPU.
 
 Script yang digunakan:
 
@@ -319,19 +281,35 @@ Script yang digunakan:
 kaggle_train.py
 ```
 
-Script ini melakukan clone repository dari branch feat/ai-model, menjalankan training, lalu menyimpan output training pada environment Kaggle.
+Contoh push kernel ke Kaggle:
 
+```bash
+kaggle kernels push -p . --accelerator NvidiaTeslaT4
+```
+
+Cek status kernel:
+
+```bash
+kaggle kernels status uliviaembun/cardioguard-ai-training
+```
+
+Download output kernel:
+
+```bash
+kaggle kernels output uliviaembun/cardioguard-ai-training -p kaggle_outputs -o
+```
 
 ## Evaluation Notes
 
-Model dievaluasi menggunakan beberapa metrik:
+Model dievaluasi menggunakan beberapa metrik, seperti accuracy, AUC, MAE berbasis probabilitas, dan MAE berbasis label hasil threshold.
 
-- accuracy;
-- AUC;
-- MAE berbasis probabilitas;
-- MAE berbasis label hasil threshold.
+Pada eksperimen terakhir, performa model belum mencapai target akurasi 85% dan MAE label 0,02. Hal ini dicatat sebagai keterbatasan eksperimen karena dataset yang digunakan merupakan data tabular dengan fitur klinis sederhana. Untuk konteks skrining awal, metrik seperti AUC, recall, precision, dan threshold selection tetap perlu dipertimbangkan bersama accuracy.
 
-Karena dataset yang digunakan merupakan data tabular dengan fitur klinis sederhana, performa model sangat dipengaruhi oleh kualitas fitur, noise data, dan keterbatasan informasi medis yang tersedia. Dalam konteks deteksi dini, metrik seperti AUC, recall, precision, dan threshold selection perlu dipertimbangkan bersama accuracy.
+Detail metrik tersimpan di:
+
+```text
+artifacts/training_metrics.json
+```
 
 ## Limitations
 
