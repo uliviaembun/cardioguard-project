@@ -13,5 +13,14 @@
   "bmi",
   "bp_cat",
   "pulse_pressure",
-  "map"
+  "map",
+  "age_bmi",
+  "age_ap_hi",
+  "age_cholesterol",
+  "bmi_ap_hi",
+  "is_obese",
+  "is_high_bp",
+  "is_high_cholesterol",
+  "is_high_glucose",
+  "lifestyle_risk"
 ]
