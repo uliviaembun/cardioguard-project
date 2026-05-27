@@ -1,6 +1,9 @@
 ﻿# CardioGuard AI Engineering
 
-Modul ini berisi pipeline machine learning untuk mendukung fitur deteksi dini risiko penyakit kardiovaskular pada aplikasi CardioGuard. Model digunakan untuk menghasilkan estimasi risiko berdasarkan data fisik, tekanan darah, dan beberapa indikator gaya hidup pengguna.
+
+Folder ini berisi pipeline AI untuk proyek CardioGuard, mulai dari training model, penyimpanan artifact, inference, sampai API prediksi risiko penyakit kardiovaskular.
+
+Model digunakan untuk membantu skrining awal risiko berdasarkan fitur seperti usia, tinggi badan, berat badan, tekanan darah, kolesterol, glukosa, aktivitas fisik, kebiasaan merokok, dan konsumsi alkohol.
 
 > Hasil prediksi dari model ini digunakan sebagai skrining awal dan edukasi kesehatan. Output model tidak ditujukan sebagai pengganti diagnosis dokter atau tenaga medis profesional.
 
@@ -18,28 +21,29 @@ Pipeline AI mencakup:
 - inference script untuk pengujian lokal;
 - REST API untuk serving model;
 - TensorBoard logging untuk monitoring training;
-- optional generative AI explanation untuk membantu menjelaskan hasil prediksi.
+- Generative AI explanation untuk membantu menjelaskan hasil prediksi.
 
 ## Folder Structure
 
 ```text
 ai-engineering/
-├── app.py
-├── requirements.txt
-├── README_AI.md
-├── kaggle_train.py
+├── app.py                         # FastAPI app untuk serving model
+├── kaggle_train.py                # script training via Kaggle
+├── kernel-metadata.json           # kaggle kernel
+├── requirements.txt               # dependency AI
+├── README_AI.md                   # dokumentasi AI engineering
 ├── scripts/
 │   ├── training_model.py
 │   ├── inference.py
-│   └── genai_explainer.py
+│   └── genai_explainer.py        # advanced fitur penggunaan openAI untuk generate message/eksplanasi singkat pada user terkait hasil prediksi risiko
 ├── models/
 │   ├── cardioguard_model.keras
 │   └── cardioguard_best_model.keras
 ├── artifacts/
-│   ├── scaler.pkl
-│   ├── feature_columns.json
-│   ├── threshold.json
-│   └── training_metrics.json
+│   ├── scaler.pkl                # scaler preprocessing
+│   ├── feature_columns.json      # daftar fitur yang digunakan model
+│   ├── threshold.json            # threshold klasifikasi
+│   └── training_metrics.json     # metrik hasil training
 └── logs/
     └── fit/
 ```
@@ -118,6 +122,8 @@ models/cardioguard_best_model.keras
 Untuk inference dan API, model yang direkomendasikan adalah `cardioguard_best_model.keras`.
 
 ### Artifacts
+
+Artifact yang dibutuhkan untuk inference:
 
 ```text
 artifacts/scaler.pkl
@@ -220,7 +226,7 @@ http://127.0.0.1:8000/docs
 
 ## Example Request
 
-Contoh request ke endpoint `/predict`:
+Contoh request/input ke endpoint `/predict`:
 
 ```json
 {
@@ -238,7 +244,7 @@ Contoh request ke endpoint `/predict`:
 }
 ```
 
-Contoh response:
+Contoh response/output:
 
 ```json
 {
@@ -253,7 +259,7 @@ Contoh response:
 
 ## Generative AI Explanation
 
-Endpoint `/explain` menyediakan penjelasan tambahan yang lebih mudah dibaca pengguna berdasarkan hasil prediksi model. Fitur ini bersifat opsional dan tidak memengaruhi output utama dari model prediksi.
+Endpoint `/explain` menyediakan penjelasan tambahan yang lebih mudah dibaca pengguna berdasarkan hasil prediksi model. Fitur ini bersifat advanced feature dan tidak memengaruhi output utama dari model prediksi.
 
 Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation. Jika environment variable `OPENAI_API_KEY` tersedia, service akan menggunakan generative AI untuk membuat penjelasan yang lebih natural.
 
