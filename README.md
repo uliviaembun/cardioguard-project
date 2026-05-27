@@ -39,12 +39,6 @@ Folder `data-science/` berisi notebook dan analisis eksploratif untuk memahami d
 
 Folder `fullstack-app/` berisi aplikasi web yang menggunakan output model untuk menampilkan hasil prediksi risiko kepada pengguna.
 
-## Dokumentasi Tambahan
-
-```text
-ai-engineering/README_AI.md
-```
-
 ## Disclaimer
 
 CardioGuard tidak memberikan diagnosis medis. Hasil prediksi hanya digunakan sebagai informasi awal untuk meningkatkan kesadaran terhadap faktor risiko penyakit kardiovaskular.
