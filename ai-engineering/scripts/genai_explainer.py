@@ -8,31 +8,40 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict
+from google import genai
+from google.genai import types
 
 
 def fallback_explanation(payload: Dict[str, Any], prediction: Dict[str, Any]) -> str:
-    tips = []
+    """Return a short deterministic explanation if Gemini is unavailable."""
+
+    risk_label = prediction.get("risk_label", "tidak diketahui")
+    risk_percent = prediction.get("risk_percent", 0)
+
+    notes = []
+
     if payload.get("ap_hi", 0) >= 130 or payload.get("ap_lo", 0) >= 80:
-        tips.append("tekanan darah terlihat perlu dipantau lebih rutin")
-    if payload.get("cholesterol", 1) > 1:
-        tips.append("kolesterol berada di atas level normal pada skema dataset")
-    if payload.get("active", 1) == 0:
-        tips.append("aktivitas fisik rendah dapat meningkatkan risiko")
+        notes.append("tekanan darah perlu dipantau")
     if payload.get("smoke", 0) == 1:
-        tips.append("kebiasaan merokok merupakan faktor risiko penting")
-    if not tips:
-        tips.append("jaga pola makan, aktivitas fisik, dan pemeriksaan kesehatan berkala")
+        notes.append("kebiasaan merokok dapat meningkatkan risiko")
+    if payload.get("cholesterol", 1) > 1:
+        notes.append("kolesterol perlu diperhatikan")
+    if payload.get("gluc", 1) > 1:
+        notes.append("glukosa perlu diperhatikan")
+    if payload.get("active", 1) == 0:
+        notes.append("aktivitas fisik masih bisa ditingkatkan")
+
+    if notes:
+        factor_text = " Beberapa faktor yang perlu diperhatikan: " + ", ".join(notes) + "."
+    else:
+        factor_text = " Tetap pertahankan pola hidup sehat dan lakukan pemeriksaan berkala."
 
     return (
-        f"Model memperkirakan risiko {prediction['risk_label']} "
-        f"({prediction['risk_percent']}%). Faktor yang perlu diperhatikan: "
-        + "; ".join(tips)
-        + ". Ini bukan diagnosis medis. Konsultasikan ke tenaga kesehatan untuk pemeriksaan lanjutan."
+        f"Hasil skrining awal menunjukkan risiko kardiovaskular Anda berada pada kategori "
+        f"{risk_label}, sekitar {risk_percent}%. "
+        f"{factor_text} "
+        "Hasil ini bukan diagnosis medis, jadi konsultasikan dengan tenaga kesehatan untuk evaluasi lebih lanjut."
     )
-
-
-import os
-from google import genai
 
 
 def generate_ai_explanation(payload, prediction):
@@ -46,27 +55,43 @@ def generate_ai_explanation(payload, prediction):
         client = genai.Client(api_key=api_key)
 
         prompt = f"""
-Buat penjelasan singkat dalam bahasa Indonesia untuk pengguna aplikasi CardioGuard.
+Tulis pesan singkat untuk user aplikasi CardioGuard.
 
-Konteks:
-- CardioGuard hanya memberikan skrining awal risiko kardiovaskular.
-- Jangan memberikan diagnosis.
-- Jangan menyatakan pengguna pasti sakit atau pasti sehat.
-- Gunakan bahasa empatik dan mudah dipahami.
+Aturan:
+- Langsung mulai dari isi pesan, jangan pakai "Tentu", "Berikut", "Draf", atau markdown.
+- Maksimal 3 kalimat.
+- Bahasa Indonesia natural, ramah, dan tidak terlalu formal.
+- Jangan memberi diagnosis.
+- Jangan menyatakan user pasti sakit atau pasti sehat.
+- Sebutkan kategori risiko dan persentase.
+- Berikan 1 saran umum yang aman.
+- Akhiri dengan disclaimer singkat bahwa ini hanya skrining awal.
 
-Input pengguna:
-{payload}
+Data prediksi:
+risk_label = {prediction.get("risk_label")}
+risk_percent = {prediction.get("risk_percent")}
+predicted_class = {prediction.get("predicted_class")}
+threshold = {prediction.get("threshold")}
 
-Hasil prediksi model:
-{prediction}
-"""
+Input penting:
+usia = {payload.get("age_years")}
+tekanan_darah = {payload.get("ap_hi")}/{payload.get("ap_lo")}
+cholesterol = {payload.get("cholesterol")}
+gluc = {payload.get("gluc")}
+smoke = {payload.get("smoke")}
+active = {payload.get("active")}
+""".strip()
 
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.4,
+                max_output_tokens=120,
+            ),
         )
-
-        return response.text
+        return response.text.strip()
 
     except Exception as exc:
-        return fallback_explanation(payload, prediction) + f" Gemini fallback aktif: {exc}"
+        print(f"[Gemini Explainer] Gemini request failed: {exc}")
+        return fallback_explanation(payload, prediction)

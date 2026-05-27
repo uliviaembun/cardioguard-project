@@ -222,7 +222,7 @@ http://127.0.0.1:8000/docs
 | `GET` | `/` | Informasi singkat service |
 | `GET` | `/health` | Mengecek status model dan artifact |
 | `POST` | `/predict` | Menghasilkan prediksi risiko |
-| `POST` | `/explain` | Menghasilkan prediksi beserta penjelasan tambahan |
+| `POST` | `/explain` | Menghasilkan prediksi beserta penjelasan tambahan yang digenerate oleh LLM|
 
 ## Example Request
 
