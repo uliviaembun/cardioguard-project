@@ -21,7 +21,9 @@ Pipeline AI mencakup:
 - inference script untuk pengujian lokal;
 - REST API untuk serving model;
 - TensorBoard logging untuk monitoring training;
-- Generative AI explanation untuk membantu menjelaskan hasil prediksi.
+- Generative AI explanation untuk membantu menjelaskan hasil prediksi secara natural kepada pengguna.
+
+API inference utama hanya menggunakan satu endpoint, yaitu `POST /predict`. Endpoint ini mengembalikan hasil prediksi model, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu response sehingga lebih mudah diintegrasikan dengan fullstack/frontend.
 
 ## Folder Structure
 
@@ -35,7 +37,7 @@ ai-engineering/
 ├── scripts/
 │   ├── training_model.py
 │   ├── inference.py
-│   └── genai_explainer.py        # advanced fitur penggunaan LLM untuk generate message/eksplanasi singkat pada user terkait hasil prediksi risiko
+│   └── genai_explainer.py        # advanced feature: generate ai_explanation via Gemini/fallback
 ├── models/
 │   ├── cardioguard_model.keras
 │   └── cardioguard_best_model.keras
@@ -59,7 +61,7 @@ Komponen utama yang digunakan:
 - `CustomTrainingMonitor`: monitor training untuk menyimpan model terbaik berdasarkan performa validasi;
 - custom training loop berbasis `tf.GradientTape`.
 
-Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan label risiko.
+Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan kelas prediksi. Selain itu, API juga menambahkan `risk_label`, `risk_color`, `health_summary`, `disclaimer`, dan `ai_explanation` agar response dapat langsung digunakan oleh fullstack/frontend.
 
 ## Input Features
 
@@ -189,6 +191,12 @@ Install dependency:
 pip install -r requirements.txt
 ```
 
+Pastikan dependency untuk FastAPI dan Gemini sudah tersedia di environment yang sama. Jika belum ada di `requirements.txt`, install manual:
+
+```bash
+pip install fastapi uvicorn python-dotenv google-genai
+```
+
 ## Inference
 
 Untuk mencoba inference tanpa menjalankan API:
@@ -215,57 +223,146 @@ Dokumentasi endpoint dapat dibuka di:
 http://127.0.0.1:8000/docs
 ```
 
+Endpoint utama untuk integrasi fullstack/frontend adalah:
+
+```text
+POST http://127.0.0.1:8000/predict
+```
+
 ## API Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/` | Informasi singkat service |
 | `GET` | `/health` | Mengecek status model dan artifact |
-| `POST` | `/predict` | Menghasilkan prediksi risiko |
-| `POST` | `/explain` | Menghasilkan prediksi beserta penjelasan tambahan yang digenerate oleh LLM|
+| `GET` | `/schema/frontend` | Menampilkan ringkasan contract request dan response |
+| `POST` | `/predict` | Menghasilkan prediksi risiko, ringkasan kesehatan, disclaimer, dan `ai_explanation` |
+
 
 ## Example Request
 
-Contoh request/input ke endpoint `/predict`:
+Contoh request dan response dari endpoint `/predict`. Endpoint ini sudah mengembalikan hasil prediksi, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu kali hit API.
+
+### Risiko Rendah
+
+<table>
+<tr>
+<td width="50%"><strong>Input Request</strong></td>
+<td width="50%"><strong>Output Response</strong></td>
+</tr>
+<tr>
+<td>
 
 ```json
 {
-  "gender": 2,
-  "height": 168,
-  "weight": 75,
-  "ap_hi": 130,
-  "ap_lo": 85,
+  "age_years": 25,
+  "gender": 1,
+  "height": 160,
+  "weight": 52,
+  "ap_hi": 110,
+  "ap_lo": 70,
   "cholesterol": 1,
   "gluc": 1,
   "smoke": 0,
   "alco": 0,
-  "active": 1,
-  "age_years": 45
+  "active": 1
 }
 ```
 
-Contoh response/output:
+</td>
+<td>
 
 ```json
 {
-  "risk_probability": 0.390542,
-  "risk_percent": 39.05,
+  "risk_probability": 0.012003,
+  "risk_percent": 1.2,
   "threshold": 0.48,
   "predicted_class": 0,
-  "risk_label": "sedang",
-  "disclaimer": "Hasil ini adalah skrining risiko awal, bukan diagnosis medis."
+  "risk_label": "rendah",
+  "risk_color": "green",
+  "health_summary": {
+    "bmi": 20.31,
+    "bmi_category": "Normal",
+    "blood_pressure": "110/70 mmHg",
+    "bp_status": "Normal",
+    "lifestyle_risk_score": 0,
+    "lifestyle_risk_label": "Rendah"
+  },
+  "disclaimer": "Hasil ini adalah skrining risiko awal berbasis AI, bukan diagnosis medis. Silakan konsultasikan dengan dokter untuk evaluasi lebih lanjut.",
+  "ai_explanation": "Hasil skrining CardioGuard Anda menunjukkan risiko rendah sebesar 1.2% untuk masalah kardiovaskular. Ini didukung oleh gaya hidup sehat Anda yang aktif secara fisik, tidak merokok, dan tidak mengonsumsi alkohol, serta tekanan darah dan BMI yang berada dalam rentang normal. Namun, perlu diingat bahwa ini hanyalah skrining awal dan bukan diagnosis medis."
 }
 ```
 
+</td>
+</tr>
+</table>
+
+### Risiko Tinggi
+
+<table>
+<tr>
+<td width="50%"><strong>Input Request</strong></td>
+<td width="50%"><strong>Output Response</strong></td>
+</tr>
+<tr>
+<td>
+
+```json
+{
+  "age_years": 60,
+  "gender": 2,
+  "height": 165,
+  "weight": 85,
+  "ap_hi": 160,
+  "ap_lo": 100,
+  "cholesterol": 3,
+  "gluc": 2,
+  "smoke": 1,
+  "alco": 1,
+  "active": 0
+}
+```
+
+</td>
+<td>
+
+```json
+{
+  "risk_probability": 0.848959,
+  "risk_percent": 84.9,
+  "threshold": 0.48,
+  "predicted_class": 1,
+  "risk_label": "tinggi",
+  "risk_color": "red",
+  "health_summary": {
+    "bmi": 31.22,
+    "bmi_category": "Obesitas",
+    "blood_pressure": "160/100 mmHg",
+    "bp_status": "Hipertensi Tahap 2",
+    "lifestyle_risk_score": 3,
+    "lifestyle_risk_label": "Tinggi"
+  },
+  "disclaimer": "Hasil ini adalah skrining risiko awal berbasis AI, bukan diagnosis medis. Silakan konsultasikan dengan dokter untuk evaluasi lebih lanjut.",
+  "ai_explanation": "Hasil skrining CardioGuard Anda menunjukkan kategori risiko tinggi dengan persentase 84.9%. Hal ini dipengaruhi oleh beberapa faktor, terutama usia Anda yang 60 tahun, tekanan darah 160/100 mmHg yang termasuk Hipertensi Tahap 2, serta gaya hidup Anda yang merokok, mengonsumsi alkohol, dan kurang aktif secara fisik. Ingat, hasil ini hanyalah skrining awal dan bukan diagnosis medis."
+}
+```
+
+</td>
+</tr>
+</table>
+
+Catatan: nilai probabilitas, label risiko, dan isi `ai_explanation` dapat berbeda bergantung pada artifact model, threshold, input pengguna, serta status koneksi ke Gemini API.
+
+
 ## Generative AI Explanation
 
-Endpoint `/explain` menyediakan penjelasan tambahan yang lebih mudah dibaca pengguna berdasarkan hasil prediksi model. Fitur ini bersifat advanced feature dan tidak memengaruhi output utama dari model prediksi.
+Fitur Generative AI Explanation digunakan untuk membuat penjelasan singkat yang lebih natural dan mudah dipahami pengguna. Penjelasan ini dikembalikan langsung melalui field `ai_explanation` pada response endpoint `/predict`.
 
-Endpoint `/predict` tetap menggunakan model machine learning utama dan tidak bergantung pada generative AI. Generative AI hanya digunakan pada endpoint `/explain` untuk membantu menyusun penjelasan yang lebih natural dan mudah dipahami pengguna.
+Endpoint `/predict` tetap menggunakan model machine learning utama untuk menghasilkan nilai probabilitas risiko. Generative AI tidak mengubah hasil prediksi model, threshold, `predicted_class`, `risk_label`, atau `risk_percent`. Generative AI hanya membantu menyusun kalimat penjelasan berdasarkan hasil prediksi dan ringkasan faktor risiko.
 
-Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation berbasis aturan sederhana. Jika environment variable `GEMINI_API_KEY` tersedia, service akan menggunakan Gemini API untuk membuat penjelasan tambahan.
+Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation berbasis aturan sederhana. Jika environment variable `GEMINI_API_KEY` tersedia dan valid, service akan menggunakan Gemini API untuk membuat `ai_explanation` yang lebih natural.
 
-API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable atau file `.env` pada environment lokal. 
+API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable atau file `.env` pada environment lokal.
 
 Contoh konfigurasi file `.env` di folder `ai-engineering/`:
 
@@ -288,8 +385,7 @@ export GEMINI_API_KEY="api_key_gemini"
 export GEMINI_MODEL="gemini-2.5-flash"
 ```
 
-Jika API key tidak tersedia, invalid, atau sudah melewati limit free tier, sistem tetap mengembalikan penjelasan fallback sehingga endpoint `/explain` tetap dapat digunakan.
-
+Jika API key tidak tersedia, invalid, atau sudah melewati limit free tier, sistem tetap mengembalikan `ai_explanation` fallback sehingga endpoint `/predict` tetap dapat digunakan.
 
 ## Kaggle Training
 
