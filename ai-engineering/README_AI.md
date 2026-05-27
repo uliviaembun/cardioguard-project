@@ -35,7 +35,7 @@ ai-engineering/
 ├── scripts/
 │   ├── training_model.py
 │   ├── inference.py
-│   └── genai_explainer.py        # advanced fitur penggunaan openAI untuk generate message/eksplanasi singkat pada user terkait hasil prediksi risiko
+│   └── genai_explainer.py        # advanced fitur penggunaan LLM untuk generate message/eksplanasi singkat pada user terkait hasil prediksi risiko
 ├── models/
 │   ├── cardioguard_model.keras
 │   └── cardioguard_best_model.keras
@@ -261,21 +261,35 @@ Contoh response/output:
 
 Endpoint `/explain` menyediakan penjelasan tambahan yang lebih mudah dibaca pengguna berdasarkan hasil prediksi model. Fitur ini bersifat advanced feature dan tidak memengaruhi output utama dari model prediksi.
 
-Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation. Jika environment variable `OPENAI_API_KEY` tersedia, service akan menggunakan generative AI untuk membuat penjelasan yang lebih natural.
+Endpoint `/predict` tetap menggunakan model machine learning utama dan tidak bergantung pada generative AI. Generative AI hanya digunakan pada endpoint `/explain` untuk membantu menyusun penjelasan yang lebih natural dan mudah dipahami pengguna.
 
-API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable pada environment lokal atau deployment server.
+Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation berbasis aturan sederhana. Jika environment variable `GEMINI_API_KEY` tersedia, service akan menggunakan Gemini API untuk membuat penjelasan tambahan.
+
+API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable atau file `.env` pada environment lokal. 
+
+Contoh konfigurasi file `.env` di folder `ai-engineering/`:
+
+```env
+GEMINI_API_KEY=api_key_gemini
+GEMINI_MODEL=gemini-2.5-flash
+```
 
 Windows PowerShell:
 
 ```powershell
-$env:OPENAI_MODEL="gpt-5.4-mini"
+$env:GEMINI_API_KEY="api_key_gemini"
+$env:GEMINI_MODEL="gemini-2.5-flash"
 ```
 
 Linux/macOS:
 
 ```bash
-export OPENAI_MODEL="gpt-5.4-mini"
+export GEMINI_API_KEY="api_key_gemini"
+export GEMINI_MODEL="gemini-2.5-flash"
 ```
+
+Jika API key tidak tersedia, invalid, atau sudah melewati limit free tier, sistem tetap mengembalikan penjelasan fallback sehingga endpoint `/explain` tetap dapat digunakan.
+
 
 ## Kaggle Training
 

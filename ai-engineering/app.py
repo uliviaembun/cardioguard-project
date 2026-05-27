@@ -6,8 +6,11 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 AI_DIR = Path(__file__).resolve().parent
 SCRIPTS_DIR = AI_DIR / "scripts"

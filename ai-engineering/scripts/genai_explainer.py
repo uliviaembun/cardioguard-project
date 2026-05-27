@@ -31,40 +31,42 @@ def fallback_explanation(payload: Dict[str, Any], prediction: Dict[str, Any]) ->
     )
 
 
-def generate_ai_explanation(payload: Dict[str, Any], prediction: Dict[str, Any]) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+import os
+from google import genai
+
+
+def generate_ai_explanation(payload, prediction):
+    api_key = os.getenv("GEMINI_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
     if not api_key:
         return fallback_explanation(payload, prediction)
 
     try:
-        from openai import OpenAI
+        client = genai.Client(api_key=api_key)
 
-        client = OpenAI(api_key=api_key)
-        model = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
         prompt = f"""
-Buat penjelasan singkat, empatik, dan aman secara medis dalam bahasa Indonesia.
-Jangan memberi diagnosis. Jelaskan bahwa ini hanya skrining awal.
+Buat penjelasan singkat dalam bahasa Indonesia untuk pengguna aplikasi CardioGuard.
+
+Konteks:
+- CardioGuard hanya memberikan skrining awal risiko kardiovaskular.
+- Jangan memberikan diagnosis.
+- Jangan menyatakan pengguna pasti sakit atau pasti sehat.
+- Gunakan bahasa empatik dan mudah dipahami.
 
 Input pengguna:
 {payload}
 
-Output model:
+Hasil prediksi model:
 {prediction}
+"""
 
-Format jawaban:
-1 paragraf ringkas + 3 saran gaya hidup yang aman dan umum.
-""".strip()
-
-        response = client.responses.create(
-            model=model,
-            input=[
-                {
-                    "role": "system",
-                    "content": "Kamu adalah asisten edukasi kesehatan preventif. Jangan mendiagnosis atau menggantikan dokter.",
-                },
-                {"role": "user", "content": prompt},
-            ],
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
         )
-        return response.output_text
-    except Exception as exc:  # keep API reliable even if GenAI provider fails
-        return fallback_explanation(payload, prediction) + f" (AI explainer fallback aktif: {exc})"
+
+        return response.text
+
+    except Exception as exc:
+        return fallback_explanation(payload, prediction) + f" Gemini fallback aktif: {exc}"
