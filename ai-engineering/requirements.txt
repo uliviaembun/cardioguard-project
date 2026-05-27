@@ -7,4 +7,7 @@ fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
-openai
+openai>=2.0.0
+tensorboard
+setuptools<81.0.0
+wheel
