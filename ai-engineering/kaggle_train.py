@@ -7,7 +7,7 @@ from pathlib import Path
 import tensorflow as tf
 
 REPO_URL = "https://github.com/fadligg/cardioguard-project.git"
-BRANCH = "feat/ai-model"
+BRANCH = "main"
 
 WORK_ROOT = Path("/kaggle/working/cardioguard-project")
 
