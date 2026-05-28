@@ -36,7 +36,7 @@ Arsitektur aplikasi dibuat terpisah agar frontend, backend, dan AI service dapat
 ```text
 Frontend Web
     ↓
-Fullstack Backend
+Backend
     ↓
 AI API
     ↓
