@@ -13,8 +13,8 @@ CardioGuard dikembangkan untuk membantu pengguna memahami faktor risiko dasar se
 Secara umum, CardioGuard terdiri dari tiga bagian utama:
 
 * Frontend web untuk input data dan visualisasi hasil.
-* Fullstack backend sebagai API gateway untuk frontend.
-* AI API untuk menjalankan model TensorFlow dan menghasilkan `ai_explanation`.
+* Backend sebagai API gateway untuk frontend.
+* AI API untuk menjalankan model TensorFlow dan menghasilkan `ai_explanation` dari LLM (Gemini Flash).
 
 ## Main Features
 
