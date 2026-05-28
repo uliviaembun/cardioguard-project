@@ -1,11 +1,12 @@
 ﻿# CardioGuard AI Engineering
 
-
 Folder ini berisi pipeline AI untuk proyek CardioGuard, mulai dari training model, penyimpanan artifact, inference, sampai API prediksi risiko penyakit kardiovaskular.
 
 Model digunakan untuk membantu skrining awal risiko berdasarkan fitur seperti usia, tinggi badan, berat badan, tekanan darah, kolesterol, glukosa, aktivitas fisik, kebiasaan merokok, dan konsumsi alkohol.
 
 > Hasil prediksi dari model ini digunakan sebagai skrining awal dan edukasi kesehatan. Output model tidak ditujukan sebagai pengganti diagnosis dokter atau tenaga medis profesional.
+
+---
 
 ## Overview
 
@@ -23,32 +24,42 @@ Pipeline AI mencakup:
 - TensorBoard logging untuk monitoring training;
 - Generative AI explanation untuk membantu menjelaskan hasil prediksi secara natural kepada pengguna.
 
-API inference utama hanya menggunakan satu endpoint, yaitu `POST /predict`. Endpoint ini mengembalikan hasil prediksi model, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu response sehingga lebih mudah diintegrasikan dengan fullstack/frontend.
+API inference utama hanya menggunakan satu endpoint:
+
+```text
+POST /predict
+```
+
+Endpoint ini mengembalikan hasil prediksi model, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu response sehingga mudah diintegrasikan dengan fullstack/frontend.
+
+---
 
 ## Folder Structure
 
 ```text
 ai-engineering/
 ├── app.py                         # FastAPI app untuk serving model
-├── kaggle_train.py                # script training via Kaggle
-├── kernel-metadata.json           # kaggle kernel
-├── requirements.txt               # dependency AI
-├── README_AI.md                   # dokumentasi AI engineering
+├── kaggle_train.py                # Script training via Kaggle
+├── kernel-metadata.json           # Kaggle kernel metadata
+├── requirements.txt               # Dependency AI
+├── README_AI.md                   # Dokumentasi AI engineering
 ├── scripts/
-│   ├── training_model.py
-│   ├── inference.py
-│   └── genai_explainer.py        # advanced feature: generate ai_explanation via Gemini/fallback
+│   ├── training_model.py          # Training pipeline
+│   ├── inference.py               # Local inference dan model loading
+│   └── genai_explainer.py         # Gemini/fallback explanation generator
 ├── models/
 │   ├── cardioguard_model.keras
 │   └── cardioguard_best_model.keras
 ├── artifacts/
-│   ├── scaler.pkl                # scaler preprocessing
-│   ├── feature_columns.json      # daftar fitur yang digunakan model
-│   ├── threshold.json            # threshold klasifikasi
-│   └── training_metrics.json     # metrik hasil training
+│   ├── scaler.pkl                 # Scaler preprocessing
+│   ├── feature_columns.json       # Daftar fitur yang digunakan model
+│   ├── threshold.json             # Threshold klasifikasi
+│   └── training_metrics.json      # Metrik hasil training
 └── logs/
-    └── fit/
+    └── fit/                       # TensorBoard logs
 ```
+
+---
 
 ## Model Description
 
@@ -61,27 +72,39 @@ Komponen utama yang digunakan:
 - `CustomTrainingMonitor`: monitor training untuk menyimpan model terbaik berdasarkan performa validasi;
 - custom training loop berbasis `tf.GradientTape`.
 
-Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan kelas prediksi. Selain itu, API juga menambahkan `risk_label`, `risk_color`, `health_summary`, `disclaimer`, dan `ai_explanation` agar response dapat langsung digunakan oleh fullstack/frontend.
+Output model berupa probabilitas risiko dalam rentang 0 sampai 1. Probabilitas tersebut dibandingkan dengan threshold yang disimpan pada folder `artifacts/` untuk menentukan kelas prediksi.
+
+Selain output model utama, API juga menambahkan field siap pakai untuk frontend:
+
+- `risk_label`
+- `risk_color`
+- `health_summary`
+- `disclaimer`
+- `ai_explanation`
+
+---
 
 ## Input Features
 
-Fitur utama yang digunakan model:
+Fitur utama yang diterima endpoint `/predict`:
 
 | Feature | Description |
 |---|---|
-| `gender` | Encoding jenis kelamin sesuai dataset |
+| `age_years` | Usia dalam tahun |
+| `gender` | Encoding jenis kelamin, `1` = Wanita, `2` = Pria |
 | `height` | Tinggi badan dalam cm |
 | `weight` | Berat badan dalam kg |
 | `ap_hi` | Tekanan darah sistolik |
 | `ap_lo` | Tekanan darah diastolik |
-| `cholesterol` | Kategori kadar kolesterol |
-| `gluc` | Kategori kadar glukosa |
-| `smoke` | Status merokok |
-| `alco` | Konsumsi alkohol |
-| `active` | Status aktivitas fisik |
-| `age_years` | Usia dalam tahun |
+| `cholesterol` | Kategori kadar kolesterol, `1` = Normal, `2` = Di atas normal, `3` = Jauh di atas normal |
+| `gluc` | Kategori kadar glukosa, `1` = Normal, `2` = Di atas normal, `3` = Jauh di atas normal |
+| `smoke` | Status merokok, `0` = Tidak, `1` = Ya |
+| `alco` | Konsumsi alkohol, `0` = Tidak, `1` = Ya |
+| `active` | Aktivitas fisik, `0` = Tidak aktif, `1` = Aktif |
 
-Pipeline juga membuat beberapa fitur turunan, seperti BMI, kategori tekanan darah, pulse pressure, mean arterial pressure, indikator obesitas, indikator tekanan darah tinggi, indikator kolesterol tinggi, indikator glukosa tinggi, dan beberapa fitur interaksi.
+Pipeline juga membuat fitur turunan, seperti BMI, kategori tekanan darah, pulse pressure, mean arterial pressure, indikator obesitas, indikator tekanan darah tinggi, indikator kolesterol tinggi, indikator glukosa tinggi, dan beberapa fitur interaksi.
+
+---
 
 ## Training
 
@@ -105,6 +128,8 @@ artifacts/
 logs/
 ```
 
+---
+
 ## Training Output
 
 Setelah training selesai, model dan artifact akan disimpan ke beberapa folder utama.
@@ -121,7 +146,11 @@ models/cardioguard_best_model.keras
 | `cardioguard_model.keras` | Model pada epoch terakhir |
 | `cardioguard_best_model.keras` | Model terbaik berdasarkan performa validasi |
 
-Untuk inference dan API, model yang direkomendasikan adalah `cardioguard_best_model.keras`.
+Untuk inference dan API, model yang direkomendasikan adalah:
+
+```text
+models/cardioguard_best_model.keras
+```
 
 ### Artifacts
 
@@ -154,6 +183,8 @@ Untuk membuka TensorBoard:
 ```bash
 tensorboard --logdir logs
 ```
+
+---
 
 ## Local Setup
 
@@ -188,14 +219,30 @@ source .venv/bin/activate
 Install dependency:
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Pastikan dependency untuk FastAPI dan Gemini sudah tersedia di environment yang sama. Jika belum ada di `requirements.txt`, install manual:
+Jika dependency FastAPI, Uvicorn, python-dotenv, atau Gemini belum tersedia, install manual:
 
 ```bash
 pip install fastapi uvicorn python-dotenv google-genai
 ```
+
+---
+
+## Environment Variables
+
+Jika ingin memakai Gemini untuk membuat `ai_explanation`, buat file `.env` di folder `ai-engineering/`:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+Jika `GEMINI_API_KEY` tidak tersedia, invalid, atau melewati limit, service tetap berjalan menggunakan fallback explanation berbasis aturan.
+
+---
 
 ## Inference
 
@@ -207,27 +254,38 @@ python scripts/inference.py
 
 Script inference akan memuat model, scaler, daftar fitur, dan threshold dari folder `models/` dan `artifacts/`.
 
-## Running the API
+---
 
-API dijalankan menggunakan FastAPI.
+## Running the AI API
 
 Dari folder `ai-engineering`, jalankan:
 
 ```bash
-python -m uvicorn app:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app:app --host 0.0.0.0 --port 8001
+```
+
+Untuk Windows PowerShell, jika ingin mengurangi log TensorFlow:
+
+```powershell
+$env:TF_CPP_MIN_LOG_LEVEL="2"
+python -m uvicorn app:app --host 0.0.0.0 --port 8001
 ```
 
 Dokumentasi endpoint dapat dibuka di:
 
 ```text
-http://127.0.0.1:8000/docs
+http://127.0.0.1:8001/docs
 ```
 
-Endpoint utama untuk integrasi fullstack/frontend adalah:
+Health check:
 
 ```text
-POST http://127.0.0.1:8000/predict
+http://127.0.0.1:8001/health
 ```
+
+> Untuk AI API, disarankan tidak memakai `--reload` saat menjalankan service normal karena TensorFlow/model dapat ter-load lebih dari sekali dan membuat startup lebih lama.
+
+---
 
 ## API Endpoints
 
@@ -238,10 +296,13 @@ POST http://127.0.0.1:8000/predict
 | `GET` | `/schema/frontend` | Menampilkan ringkasan contract request dan response |
 | `POST` | `/predict` | Menghasilkan prediksi risiko, ringkasan kesehatan, disclaimer, dan `ai_explanation` |
 
+---
 
 ## Example Request
 
-Contoh request dan response dari endpoint `/predict`. Endpoint ini sudah mengembalikan hasil prediksi, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu kali hit API.
+Contoh request dan response dari endpoint `/predict`.
+
+Endpoint ini sudah mengembalikan hasil prediksi, ringkasan kesehatan, disclaimer, dan `ai_explanation` dalam satu kali hit API.
 
 ### Risiko Rendah
 
@@ -353,39 +414,72 @@ Contoh request dan response dari endpoint `/predict`. Endpoint ini sudah mengemb
 
 Catatan: nilai probabilitas, label risiko, dan isi `ai_explanation` dapat berbeda bergantung pada artifact model, threshold, input pengguna, serta status koneksi ke Gemini API.
 
+---
 
 ## Generative AI Explanation
 
 Fitur Generative AI Explanation digunakan untuk membuat penjelasan singkat yang lebih natural dan mudah dipahami pengguna. Penjelasan ini dikembalikan langsung melalui field `ai_explanation` pada response endpoint `/predict`.
 
-Endpoint `/predict` tetap menggunakan model machine learning utama untuk menghasilkan nilai probabilitas risiko. Generative AI tidak mengubah hasil prediksi model, threshold, `predicted_class`, `risk_label`, atau `risk_percent`. Generative AI hanya membantu menyusun kalimat penjelasan berdasarkan hasil prediksi dan ringkasan faktor risiko.
+Generative AI tidak menentukan hasil prediksi. Hasil prediksi tetap berasal dari model machine learning utama. LLM hanya membantu menyusun kalimat penjelasan berdasarkan output model, ringkasan kesehatan, dan faktor risiko input.
 
-Secara default, service tetap dapat berjalan tanpa API key menggunakan fallback explanation berbasis aturan sederhana. Jika environment variable `GEMINI_API_KEY` tersedia dan valid, service akan menggunakan Gemini API untuk membuat `ai_explanation` yang lebih natural.
+Flow explanation:
 
-API key tidak disimpan di repository. Konfigurasi dilakukan melalui environment variable atau file `.env` pada environment lokal.
+```text
+Input user
+   ↓
+Model menghasilkan risk_probability, predicted_class, risk_label
+   ↓
+API membuat health_summary dan disclaimer
+   ↓
+Gemini menyusun ai_explanation
+   ↓
+Jika Gemini gagal, fallback explanation digunakan
+```
 
-Contoh konfigurasi file `.env` di folder `ai-engineering/`:
+Konfigurasi Gemini dilakukan melalui environment variable:
 
 ```env
-GEMINI_API_KEY=api_key_gemini
+GEMINI_API_KEY=your_gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Windows PowerShell:
+Jika API key tidak tersedia, invalid, atau sudah melewati limit free tier, sistem tetap mengembalikan `ai_explanation` dari fallback sehingga endpoint `/predict` tetap dapat digunakan.
 
-```powershell
-$env:GEMINI_API_KEY="api_key_gemini"
-$env:GEMINI_MODEL="gemini-2.5-flash"
+---
+
+## Fullstack Integration
+
+Dalam aplikasi web, AI API tidak dipanggil langsung oleh frontend. Alur integrasinya:
+
+```text
+Frontend Web
+   ↓
+Fullstack Backend
+   ↓
+AI API /predict
 ```
 
-Linux/macOS:
+Port lokal yang digunakan:
 
-```bash
-export GEMINI_API_KEY="api_key_gemini"
-export GEMINI_MODEL="gemini-2.5-flash"
+| Service | Port |
+|---|---:|
+| AI API | `8001` |
+| Fullstack Backend | `8000` |
+| Frontend | `5173` |
+
+Backend fullstack mengarah ke AI API melalui environment variable:
+
+```env
+AI_API_URL=http://127.0.0.1:8001
 ```
 
-Jika API key tidak tersedia, invalid, atau sudah melewati limit free tier, sistem tetap mengembalikan `ai_explanation` fallback sehingga endpoint `/predict` tetap dapat digunakan.
+Frontend mengarah ke backend fullstack melalui environment variable:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+---
 
 ## Kaggle Training
 
@@ -415,6 +509,8 @@ Download output kernel:
 kaggle kernels output uliviaembun/cardioguard-ai-training -p kaggle_outputs -o
 ```
 
+---
+
 ## Evaluation Notes
 
 Model dievaluasi menggunakan beberapa metrik, seperti accuracy, AUC, MAE berbasis probabilitas, dan MAE berbasis label hasil threshold.
@@ -427,6 +523,8 @@ Detail metrik tersimpan di:
 artifacts/training_metrics.json
 ```
 
+---
+
 ## Limitations
 
 Beberapa keterbatasan modul ini:
@@ -434,7 +532,10 @@ Beberapa keterbatasan modul ini:
 - data input masih terbatas pada fitur umum;
 - model tidak menggunakan data klinis lanjutan seperti ECG, riwayat penyakit detail, atau hasil pemeriksaan laboratorium lengkap;
 - prediksi bersifat estimasi risiko awal;
-- performa model dapat berubah jika distribusi data pengguna berbeda dari data training.
+- performa model dapat berubah jika distribusi data pengguna berbeda dari data training;
+- `ai_explanation` bersifat penjelasan natural dan tidak mengubah hasil prediksi model.
+
+---
 
 ## Disclaimer
 

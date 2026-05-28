@@ -182,7 +182,7 @@ export default function ResultCard({ result, onReset }) {
 
             {/* Description */}
             <p className="text-surface-300 text-sm leading-relaxed">
-              {config.description}
+              {result.ai_explanation || config.description}
             </p>
 
             {/* Threshold */}
