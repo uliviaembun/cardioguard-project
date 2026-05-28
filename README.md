@@ -47,7 +47,7 @@ Port lokal yang digunakan:
 
 | Service           | URL                     | Description                              |
 | ----------------- | ----------------------- | ---------------------------------------- |
-| Frontend          | `http://127.0.0.1:5173` | Tampilan web CardioGuard                 |
+| Frontend          | `http://localhost:5173` | Tampilan web CardioGuard                 |
 | Backend           | `http://127.0.0.1:8000` | API yang diakses frontend                |
 | AI API            | `http://127.0.0.1:8001` | Service AI untuk prediksi dan penjelasan |
 
