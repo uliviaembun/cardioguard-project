@@ -209,7 +209,6 @@ export default function ResultCard({ result, onReset }) {
           <p className="text-xs text-primary-200/70 leading-relaxed">
             Prediksi dihasilkan oleh model deep learning CardioGuard berdasarkan data masukan Anda yang telah diproses menjadi{" "}
             <span className="font-medium text-primary-300">24 fitur analisis</span>{" "}
-            dari data masukan Anda.
           </p>
         </div>
 
