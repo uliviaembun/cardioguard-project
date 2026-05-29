@@ -84,7 +84,6 @@ def fallback_explanation(payload: Dict[str, Any], prediction: Dict[str, Any]) ->
         f"Model memperkirakan risiko kardiovaskular Anda berada pada kategori "
         f"{risk_label} ({risk_percent}%). "
         f"{factor_text} "
-        f"Hasil ini hanya skrining awal, bukan diagnosis medis."
     )
 
 
@@ -153,7 +152,6 @@ Aturan output:
 - Jangan menyatakan user pasti sakit atau pasti sehat.
 - Sebutkan kategori risiko dan persentase risiko.
 - Sebutkan faktor yang paling relevan dari data input.
-- Akhiri dengan kalimat bahwa hasil ini hanya skrining awal, bukan diagnosis medis.
 - Jangan mengembalikan potongan kalimat. Jawaban harus selesai.
 
 Data prediksi:
