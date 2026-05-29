@@ -207,8 +207,8 @@ export default function ResultCard({ result, onReset }) {
         <div className="flex gap-2.5 p-3.5 bg-primary-500/[0.06] border border-primary-500/15 rounded-xl">
           <Info className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
           <p className="text-xs text-primary-200/70 leading-relaxed">
-            Prediksi dihasilkan oleh model deep learning CardioGuard dengan{" "}
-            <span className="font-medium text-primary-300">23 fitur terengineering</span>{" "}
+            Prediksi dihasilkan oleh model deep learning CardioGuard berdasarkan data masukan Anda yang telah diproses menjadi{" "}
+            <span className="font-medium text-primary-300">24 fitur analisis</span>{" "}
             dari data masukan Anda.
           </p>
         </div>

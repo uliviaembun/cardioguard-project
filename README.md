@@ -1,42 +1,120 @@
 # CardioGuard
 
-CardioGuard adalah aplikasi web berbasis AI untuk membantu skrining awal risiko penyakit kardiovaskular. Aplikasi ini menerima data kesehatan dasar pengguna, seperti usia, tinggi badan, berat badan, tekanan darah, kolesterol, gula darah, aktivitas fisik, kebiasaan merokok, dan konsumsi alkohol. Berdasarkan data tersebut, sistem memberikan estimasi tingkat risiko kardiovaskular, ringkasan kesehatan, serta penjelasan singkat yang mudah dipahami pengguna.
+**CardioGuard** adalah aplikasi web berbasis Artificial Intelligence untuk membantu skrining awal risiko penyakit kardiovaskular. Aplikasi ini menerima data kesehatan dasar pengguna, seperti usia, tinggi badan, berat badan, tekanan darah, kolesterol, gula darah, aktivitas fisik, kebiasaan merokok, dan konsumsi alkohol. Berdasarkan data tersebut, sistem memberikan estimasi tingkat risiko kardiovaskular, ringkasan kesehatan, serta penjelasan singkat yang mudah dipahami pengguna.
 
-> CardioGuard bukan alat diagnosis medis. Hasil prediksi hanya digunakan sebagai skrining awal dan edukasi kesehatan. Untuk evaluasi kesehatan yang akurat, pengguna tetap disarankan berkonsultasi dengan dokter atau tenaga medis profesional.
+> **Disclaimer:** CardioGuard bukan alat diagnosis medis. Hasil prediksi hanya digunakan sebagai skrining awal dan edukasi kesehatan. Untuk evaluasi kesehatan yang akurat, pengguna tetap disarankan berkonsultasi dengan dokter atau tenaga medis profesional.
+
+## Live Demo
+
+Aplikasi CardioGuard dapat diakses melalui:
+
+```text
+https://www.cardioguard.my.id
+```
+
+Production API:
+
+```text
+https://uliviaembun-cardioguard-api.hf.space
+```
+
+Main endpoint:
+
+```text
+POST /predict
+```
 
 ## Overview
 
-Penyakit kardiovaskular merupakan salah satu masalah kesehatan serius yang sering kali berkaitan dengan faktor risiko seperti tekanan darah tinggi, obesitas, kolesterol tinggi, gula darah tinggi, kebiasaan merokok, konsumsi alkohol, dan kurangnya aktivitas fisik.
+Penyakit kardiovaskular merupakan salah satu masalah kesehatan serius yang sering berkaitan dengan faktor risiko seperti tekanan darah tinggi, obesitas, kolesterol tinggi, gula darah tinggi, kebiasaan merokok, konsumsi alkohol, dan kurangnya aktivitas fisik.
 
-CardioGuard dikembangkan untuk membantu pengguna memahami faktor risiko dasar secara lebih mudah melalui aplikasi web yang interaktif. Sistem ini menggabungkan model deep learning untuk prediksi risiko dan Gemini API sebagai Large Language Model (LLM) untuk menghasilkan penjelasan singkat yang lebih natural bagi pengguna.
+CardioGuard dikembangkan untuk membantu pengguna memahami risiko awal secara lebih mudah melalui aplikasi web yang interaktif. Sistem ini menggabungkan:
 
-Secara umum, CardioGuard terdiri dari tiga bagian utama:
-
-* Frontend web untuk input data dan visualisasi hasil.
-* Backend sebagai API gateway untuk frontend.
-* AI API untuk menjalankan model TensorFlow dan menghasilkan `ai_explanation` dari LLM (Gemini Flash).
+* model deep learning berbasis TensorFlow/Keras untuk prediksi risiko;
+* Gemini API sebagai Large Language Model untuk menghasilkan penjelasan hasil skrining;
+* web frontend untuk input data, visualisasi hasil, dan cetak laporan skrining.
 
 ## Main Features
 
 Fitur utama CardioGuard:
 
 * Form input data kesehatan pengguna.
-* Prediksi risiko penyakit kardiovaskular berbasis model AI.
+* Prediksi risiko penyakit kardiovaskular berbasis model deep learning.
 * Kategori risiko: rendah, sedang, dan tinggi.
 * Ringkasan kesehatan berupa BMI, kategori BMI, tekanan darah, dan risiko gaya hidup.
 * Penjelasan hasil prediksi menggunakan Gemini API sebagai LLM.
 * Fallback explanation jika Gemini API tidak tersedia atau mengalami error.
 * Tampilan web interaktif untuk melihat hasil skrining.
-* Backend API yang terpisah dari AI API agar integrasi lebih modular.
+* Cetak hasil skrining dalam format laporan sederhana agar dapat disimpan atau dibawa saat konsultasi.
+* API modular yang dapat dijalankan secara lokal maupun di-host sebagai service terpisah.
 
-## System Architecture
+## Production Architecture
 
-Arsitektur aplikasi dibuat terpisah agar frontend, backend, dan AI service dapat dikembangkan secara independen.
+Pada versi production, arsitektur dibuat sederhana agar deployment gratis lebih efisien dan menghindari double cold start.
+
+```text
+User
+  ↓
+Custom Domain
+https://www.cardioguard.my.id
+  ↓
+Frontend Web di Vercel
+  ↓
+Hugging Face Spaces API
+https://uliviaembun-cardioguard-api.hf.space
+  ↓
+TensorFlow Model + Gemini API
+```
+
+Production hosting summary:
+
+| Component     | Platform            | Description                                                               |
+| ------------- | ------------------- | ------------------------------------------------------------------------- |
+| Custom Domain | DomaiNesia          | Domain publik `www.cardioguard.my.id`                                     |
+| Frontend      | Vercel              | Menampilkan form, hasil analisis, dan fitur cetak hasil                   |
+| AI API        | Hugging Face Spaces | Menjalankan endpoint `/predict`, model TensorFlow, dan Gemini explanation |
+| LLM           | Gemini API          | Menghasilkan `ai_explanation` yang natural dan mudah dipahami             |
+| Source Code   | GitHub              | Menyimpan source code project                                             |
+
+## Production API Flow
+
+Alur request saat user melakukan skrining di website production:
+
+```text
+User membuka https://www.cardioguard.my.id
+        ↓
+Frontend Vercel menerima input user
+        ↓
+Frontend POST ke Hugging Face API
+        ↓
+POST https://uliviaembun-cardioguard-api.hf.space/predict
+        ↓
+API menjalankan model TensorFlow untuk prediksi risiko
+        ↓
+API menggunakan Gemini API sebagai LLM untuk membuat ai_explanation
+        ↓
+Jika Gemini API tidak tersedia/error, API menggunakan fallback explanation
+        ↓
+API mengembalikan:
+- risk_probability
+- risk_percent
+- risk_label
+- risk_color
+- health_summary
+- disclaimer
+- ai_explanation
+        ↓
+Frontend menampilkan hasil analisis ke user
+```
+
+## Local Development Architecture
+
+Untuk development lokal, project tetap menyediakan backend proxy di folder `fullstack-app/backend`.
 
 ```text
 Frontend Web
     ↓
-Backend
+Fullstack Backend
     ↓
 AI API
     ↓
@@ -48,34 +126,10 @@ Port lokal yang digunakan:
 | Service           | URL                     | Description                              |
 | ----------------- | ----------------------- | ---------------------------------------- |
 | Frontend          | `http://localhost:5173` | Tampilan web CardioGuard                 |
-| Backend           | `http://127.0.0.1:8000` | API yang diakses frontend                |
+| Fullstack Backend | `http://127.0.0.1:8000` | Backend proxy untuk development lokal    |
 | AI API            | `http://127.0.0.1:8001` | Service AI untuk prediksi dan penjelasan |
 
-## API Flow
-
-Alur request saat user submit form:
-
-```text
-User mengisi form di frontend
-        ↓
-Frontend POST http://127.0.0.1:8000/predict
-        ↓
-Backend meneruskan request ke AI API
-        ↓
-AI API POST http://127.0.0.1:8001/predict
-        ↓
-AI API menjalankan model TensorFlow untuk prediksi risiko
-        ↓
-AI API menggunakan Gemini API sebagai LLM untuk membuat ai_explanation
-        ↓
-Jika Gemini API tidak tersedia/error, AI API menggunakan fallback explanation
-        ↓
-AI API mengembalikan prediksi + health_summary + disclaimer + ai_explanation
-        ↓
-Backend meneruskan response ke frontend
-        ↓
-Frontend menampilkan hasil analisis ke user
-```
+> Catatan: pada production hosted version, frontend langsung memanggil Hugging Face Spaces API. Backend proxy tetap tersedia untuk local development dan eksperimen integrasi.
 
 ## Repository Structure
 
@@ -83,6 +137,7 @@ Frontend menampilkan hasil analisis ke user
 cardioguard-project/
 ├── ai-engineering/
 │   ├── app.py
+│   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── README_AI.md
 │   ├── scripts/
@@ -97,8 +152,7 @@ cardioguard-project/
 │   ├── backend/
 │   │   ├── main.py
 │   │   ├── schemas.py
-│   │   ├── requirements.txt
-│   │   └── .env
+│   │   └── requirements.txt
 │   └── frontend/
 │       ├── src/
 │       ├── package.json
@@ -107,20 +161,23 @@ cardioguard-project/
 ├── data-science/
 ├── data/
 ├── docs/
+├── requirements.txt
 └── README.md
 ```
 
 ## Tech Stack
 
-| Layer           | Technology                              |
-| --------------- | --------------------------------------- |
-| Frontend        | React, Vite                             |
-| Backend         | FastAPI, HTTPX                          |
-| AI API          | FastAPI, TensorFlow/Keras               |
-| Model Serving   | TensorFlow/Keras `.keras` model         |
-| LLM Explanation | Gemini API                              |
-| Data Processing | NumPy, Pandas, Scikit-learn             |
-| Environment     | Python virtual environment, Node.js/npm |
+| Layer            | Technology                              |
+| ---------------- | --------------------------------------- |
+| Frontend         | React, Vite                             |
+| Frontend Hosting | Vercel                                  |
+| AI API Hosting   | Hugging Face Spaces                     |
+| Local Backend    | FastAPI, HTTPX                          |
+| AI API           | FastAPI, TensorFlow/Keras               |
+| Model Serving    | TensorFlow/Keras `.keras` model         |
+| LLM Explanation  | Gemini API                              |
+| Data Processing  | NumPy, Pandas, Scikit-learn             |
+| Environment      | Python virtual environment, Node.js/npm |
 
 ## AI Module
 
@@ -206,23 +263,56 @@ Contoh response:
     "lifestyle_risk_label": "Tinggi"
   },
   "disclaimer": "Hasil ini adalah skrining risiko awal berbasis AI, bukan diagnosis medis. Silakan konsultasikan dengan dokter untuk evaluasi lebih lanjut.",
-  "ai_explanation": "Hasil skrining CardioGuard Anda menunjukkan kategori risiko tinggi dengan persentase 84.9%. Hal ini dipengaruhi oleh beberapa faktor, terutama tekanan darah, BMI, dan gaya hidup. Hasil ini hanya skrining awal dan bukan diagnosis medis."
+  "ai_explanation": "Hasil skrining CardioGuard menunjukkan kategori risiko tinggi dengan persentase 84.9%. Faktor yang paling berkontribusi antara lain tekanan darah, BMI, dan gaya hidup. Hasil ini hanya skrining awal dan bukan diagnosis medis."
 }
 ```
 
-## Local Setup
+## Running the Project Locally
 
-Aplikasi dijalankan menggunakan tiga service berbeda:
+Ada dua opsi running lokal:
 
-```text
-AI API              → port 8001
-Fullstack Backend   → port 8000
-Frontend            → port 5173
+1. **Frontend langsung ke Hugging Face API** — paling cepat untuk testing UI.
+2. **Full local services** — menjalankan AI API, backend proxy, dan frontend secara lokal.
+
+## Option 1 — Run Frontend with Hosted API
+
+Gunakan opsi ini jika API Hugging Face sudah aktif dan kamu hanya ingin menjalankan frontend lokal.
+
+Masuk ke folder frontend:
+
+```bash
+cd fullstack-app/frontend
 ```
 
-Disarankan menggunakan virtual environment terpisah untuk `ai-engineering` dan `fullstack-app/backend`.
+Buat file `.env`:
 
-## 1. Run AI API
+```env
+VITE_API_URL=https://uliviaembun-cardioguard-api.hf.space
+```
+
+Install dependency:
+
+```bash
+npm install
+```
+
+Jalankan frontend:
+
+```bash
+npm run dev
+```
+
+Buka aplikasi:
+
+```text
+http://localhost:5173
+```
+
+## Option 2 — Run Full Local Services
+
+Gunakan opsi ini jika ingin menjalankan seluruh service secara lokal.
+
+### 1. Run AI API
 
 Masuk ke folder AI:
 
@@ -230,16 +320,16 @@ Masuk ke folder AI:
 cd ai-engineering
 ```
 
-Buat dan aktifkan virtual environment:
+Buat dan aktifkan virtual environment.
 
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### Linux/macOS
+Linux/macOS:
 
 ```bash
 python -m venv .venv
@@ -255,8 +345,10 @@ pip install -r requirements.txt
 Buat file `.env` di folder `ai-engineering/`:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+TF_CPP_MIN_LOG_LEVEL=2
 ```
 
 Jika `GEMINI_API_KEY` tidak tersedia, service tetap berjalan menggunakan fallback explanation.
@@ -285,7 +377,7 @@ Expected response:
 }
 ```
 
-## 2. Run Fullstack Backend
+### 2. Run Fullstack Backend
 
 Masuk ke folder backend:
 
@@ -293,16 +385,16 @@ Masuk ke folder backend:
 cd fullstack-app/backend
 ```
 
-Buat dan aktifkan virtual environment:
+Buat dan aktifkan virtual environment.
 
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### Linux/macOS
+Linux/macOS:
 
 ```bash
 python -m venv .venv
@@ -337,12 +429,18 @@ http://127.0.0.1:8000/health
 
 Jika berhasil, backend akan meneruskan health check ke AI API dan mengembalikan status model.
 
-## 3. Run Frontend
+### 3. Run Frontend
 
 Masuk ke folder frontend:
 
 ```bash
 cd fullstack-app/frontend
+```
+
+Buat file `.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
 Install dependency:
@@ -351,19 +449,13 @@ Install dependency:
 npm install
 ```
 
-Buat file `.env` di folder `fullstack-app/frontend/`:
-
-```env
-VITE_API_URL=http://127.0.0.1:8000
-```
-
 Jalankan frontend:
 
 ```bash
 npm run dev
 ```
 
-Buka aplikasi di browser:
+Buka aplikasi:
 
 ```text
 http://localhost:5173
@@ -378,6 +470,7 @@ Contoh Windows PowerShell:
 ```powershell
 $nodePath = "$env:USERPROFILE\Downloads\node-v24.16.0-win-x64\node-v24.16.0-win-x64"
 $env:Path = "$nodePath;$env:Path"
+
 node -v
 npm.cmd -v
 ```
@@ -389,43 +482,77 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-## Running Order Summary
+## Deployment
 
-Gunakan tiga terminal terpisah.
+### Frontend Deployment
 
-### Terminal 1 — AI API
+Frontend di-deploy ke Vercel.
 
-```bash
-cd ai-engineering
-python -m uvicorn app:app --host 0.0.0.0 --port 8001
-```
-
-### Terminal 2 — Backend
-
-```bash
-cd fullstack-app/backend
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Terminal 3 — Frontend
-
-```bash
-cd fullstack-app/frontend
-npm run dev
-```
-
-Akses aplikasi melalui:
+Vercel project setting:
 
 ```text
-http://localhost:5173
+Framework Preset : Vite
+Root Directory   : fullstack-app/frontend
+Install Command  : npm install
+Build Command    : npm run build
+Output Directory : dist
 ```
 
-## Testing the Integration
+Vercel environment variable:
 
-Test backend prediction endpoint:
+```env
+VITE_API_URL=https://uliviaembun-cardioguard-api.hf.space
+```
+
+### AI API Deployment
+
+AI API di-deploy ke Hugging Face Spaces sebagai Docker Space.
+
+Hugging Face Space:
+
+```text
+https://huggingface.co/spaces/uliviaembun/cardioguard-api
+```
+
+Production API URL:
+
+```text
+https://uliviaembun-cardioguard-api.hf.space
+```
+
+Required Hugging Face variables & secrets:
+
+```env
+GEMINI_API_KEY=gemini_api_key
+GEMINI_MODEL=gemini-2.5-flash
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://www.cardioguard.my.id,https://cardioguard.my.id
+TF_CPP_MIN_LOG_LEVEL=2
+```
+
+Docker Space uses:
+
+```text
+ai-engineering/Dockerfile
+```
+
+with exposed port:
+
+```text
+7860
+```
+
+## Testing the Hosted API
+
+Test health endpoint:
+
+```text
+https://uliviaembun-cardioguard-api.hf.space/health
+```
+
+Test prediction endpoint using curl:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/predict" \
+curl -X POST "https://uliviaembun-cardioguard-api.hf.space/predict" \
   -H "Content-Type: application/json" \
   -d '{
     "age_years": 60,
@@ -442,7 +569,7 @@ curl -X POST "http://127.0.0.1:8000/predict" \
   }'
 ```
 
-Jika integrasi berhasil, response akan memiliki field:
+Jika berhasil, response akan memiliki field:
 
 ```json
 {
@@ -460,8 +587,10 @@ File `.env` tidak disimpan ke repository.
 ### `ai-engineering/.env`
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
+GEMINI_API_KEY=gemini_api_key
 GEMINI_MODEL=gemini-2.5-flash
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+TF_CPP_MIN_LOG_LEVEL=2
 ```
 
 ### `fullstack-app/backend/.env`
@@ -474,9 +603,27 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 ### `fullstack-app/frontend/.env`
 
+For hosted API:
+
+```env
+VITE_API_URL=https://uliviaembun-cardioguard-api.hf.space
+```
+
+For local backend:
+
 ```env
 VITE_API_URL=http://127.0.0.1:8000
 ```
+
+## Important Notes
+
+* Production frontend is hosted on Vercel.
+* Production API is hosted on Hugging Face Spaces.
+* Production frontend directly calls Hugging Face API.
+* Local backend proxy is available for development but is not required in production.
+* Hugging Face Free CPU Space may sleep after a period of inactivity, so the first request after idle time can be slower.
+* Gemini API is used only to generate explanation text, not to determine the model prediction.
+* If Gemini API is unavailable, the system returns deterministic fallback explanation.
 
 ## Limitations
 
@@ -487,6 +634,7 @@ Beberapa keterbatasan CardioGuard:
 * Model tidak menggunakan data klinis lanjutan seperti ECG, riwayat penyakit detail, atau hasil laboratorium lengkap.
 * Hasil dapat berubah jika artifact model, threshold, atau input pengguna berubah.
 * Penjelasan `ai_explanation` dapat berasal dari Gemini API atau fallback explanation.
+* Free hosting dapat mengalami cold start setelah periode tidak aktif.
 
 ## Disclaimer
 
